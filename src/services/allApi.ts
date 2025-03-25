@@ -12,6 +12,7 @@ interface RequestHeaders {
 }
 
 interface Task {
+  progress: number;
   id: string;
   title: string;
   description: string;
