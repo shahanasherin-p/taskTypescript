@@ -15,17 +15,22 @@ const Tasks: React.FC = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const taskImageInputRef = useRef<HTMLInputElement>(null);
 
   const [taskDetails, setTaskDetails] = useState<{ 
     title: string; 
     description: string; 
     status: string; 
-    progress: number 
+    progress: number;
+    image: File | null;
+    imagePreview: string | null;
   }>({
     title: '', 
     description: '', 
     status: 'pending', 
     progress: 0,
+    image: null,
+    imagePreview: null
   });
 
   const [allTask, setAllTask] = useState<any[]>([]);
@@ -40,7 +45,7 @@ const Tasks: React.FC = () => {
     }
 
     fetchTasks();
-  }, []);
+  }, [allTask]);
 
   const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -153,6 +158,35 @@ const Tasks: React.FC = () => {
     }
   };
 
+  const handleTaskImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File is too large. Maximum size is 5MB.');
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type. Please upload a JPEG, PNG, or GIF.');
+        return;
+      }
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTaskDetails(prev => ({
+          ...prev,
+          image: file,
+          imagePreview: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -164,20 +198,37 @@ const Tasks: React.FC = () => {
 
     if (taskDetails.title && taskDetails.description) {
       try {
+        // Create FormData to send task details and image
+        const formData = new FormData();
+        formData.append('title', taskDetails.title);
+        formData.append('description', taskDetails.description);
+        formData.append('status', taskDetails.status);
+        formData.append('progress', taskDetails.progress.toString());
+        
+        // Append image if exists
+        if (taskDetails.image) {
+          formData.append('taskImage', taskDetails.image);
+        }
+
         const response = await addTaskAPI(
+          formData,
           { 
-            title: taskDetails.title, 
-            description: taskDetails.description, 
-            status: taskDetails.status, 
-            progress: taskDetails.progress 
-          },
-          { Authorization: `Bearer ${token}` }
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
         );
 
         if (isAxiosResponse(response)) {
           setAllTask((prevTasks) => [...prevTasks, response.data]);
           closeModal();
-          setTaskDetails({ title: '', description: '', status: 'pending', progress: 0 });
+          setTaskDetails({ 
+            title: '', 
+            description: '', 
+            status: 'pending', 
+            progress: 0,
+            image: null,
+            imagePreview: null
+          });
         }
       } catch (error) {
         console.error('Error adding task:', error);
@@ -262,6 +313,16 @@ const Tasks: React.FC = () => {
               allTask.map((task) => (
                 <Col key={task._id}>
                   <Card className="shadow-sm border-0 rounded-3">
+                    {task.taskImage && (
+                      <Card.Img 
+                        variant="top" 
+                        src={`${SERVER_URL}/uploads/${task.taskImage}`} 
+                        style={{ 
+                          height: '200px', 
+                          objectFit: 'cover' 
+                        }} 
+                      />
+                    )}
                     <Card.Body>
                       <div className="d-flex justify-content-between align-items-start mb-2">
                         <Card.Title className="mb-0">{task.title}</Card.Title>
@@ -401,6 +462,40 @@ const Tasks: React.FC = () => {
                   required
                 />
               </Form.Group>
+              
+              {/* New Image Upload Section */}
+              <Form.Group className="mb-3">
+                <Form.Label>Task Image (Optional)</Form.Label>
+                <input
+                  type="file"
+                  ref={taskImageInputRef}
+                  style={{ display: 'none' }}
+                  accept="image/jpeg,image/png,image/gif"
+                  onChange={handleTaskImageUpload}
+                />
+                <div className="d-flex align-items-center">
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => taskImageInputRef.current?.click()}
+                  >
+                    Upload Image
+                  </Button>
+                  {taskDetails.imagePreview && (
+                    <img 
+                      src={taskDetails.imagePreview} 
+                      alt="Task Preview" 
+                      style={{ 
+                        maxWidth: '100px', 
+                        maxHeight: '100px', 
+                        objectFit: 'cover' 
+                      }} 
+                    />
+                  )}
+                </div>
+              </Form.Group>
+
               <Row>
                 <Col>
                   <Form.Group className="mb-3">

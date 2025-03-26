@@ -12,6 +12,8 @@ interface RequestHeaders {
 }
 
 interface Task {
+  taskImage: string;
+  image: string;
   progress: number;
   id: string;
   title: string;

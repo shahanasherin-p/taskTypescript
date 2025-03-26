@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getSingleTaskAPI, updateTaskAPI } from '../services/allApi';
+import SERVER_URL from '../services/serverUrl';
 
 interface Task {
   _id?: string;
@@ -9,6 +10,7 @@ interface Task {
   description: string;
   status: string;
   progress: number;
+  taskImage?: string | File; 
 }
 
 const EditTask: React.FC = () => {
@@ -20,10 +22,13 @@ const EditTask: React.FC = () => {
     description: '',
     status: 'pending',
     progress: 0,
+    taskImage: '', 
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTaskDetails = async () => {
@@ -47,17 +52,35 @@ const EditTask: React.FC = () => {
 
         const response = await getSingleTaskAPI(id, headers);
 
-        // Check if response is successful
         if (axios.isAxiosError(response)) {
           setError(response.message);
         } else if (response && response.data) {
-          // Log the fetched task details here
-          console.log('Fetched Task Details:', response.data);
+          const fetchedTask = response.data;
           
+          // Debug log for image path
+          console.log('Fetched Task Image:', fetchedTask.taskImage);
+
+          // Determine full image URL
+          const fullImageUrl = fetchedTask.taskImage 
+            ? (fetchedTask.taskImage.startsWith('http') 
+              ? fetchedTask.taskImage 
+              : `${SERVER_URL}/uploads/${fetchedTask.taskImage}`)
+            : null;
+
+          // Set task details
           setTaskDetails({
-            ...response.data,
-            progress: response.data.progress,
+            title: fetchedTask.title,
+            description: fetchedTask.description,
+            status: fetchedTask.status,
+            progress: fetchedTask.progress,
+            taskImage: fullImageUrl || '',
           });
+
+          // Set original and preview images
+          if (fullImageUrl) {
+            setOriginalImage(fullImageUrl);
+            setPreviewImage(fullImageUrl);
+          }
         } else {
           setError('Failed to fetch task details');
         }
@@ -67,6 +90,7 @@ const EditTask: React.FC = () => {
         } else {
           setError('An unexpected error occurred');
         }
+        console.error('Error fetching task details:', err);
       } finally {
         setIsLoading(false);
       }
@@ -83,15 +107,54 @@ const EditTask: React.FC = () => {
     }));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type and size
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (!validTypes.includes(file.type)) {
+        setError('Invalid file type. Please upload a JPEG, PNG, or GIF.');
+        return;
+      }
+
+      if (file.size > maxSize) {
+        setError('File is too large. Maximum size is 5MB.');
+        return;
+      }
+
+      // Set the file and create a preview
+      setTaskDetails(prevDetails => ({
+        ...prevDetails,
+        taskImage: file,
+      }));
+
+      // Create image preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    // Clear image-related states
+    setTaskDetails(prevDetails => ({
+      ...prevDetails,
+      taskImage: '', 
+    }));
+    setPreviewImage(null);
+    setOriginalImage(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    // Log the task data before submission
-    console.log('Submitting Task Data:', taskDetails);
-
-    const { title, description, status, progress } = taskDetails;
+    const { title, description, status, progress, taskImage } = taskDetails;
     if (!title || !description || !status || progress === undefined) {
       setError('Please fill in all fields before submitting.');
       setIsLoading(false);
@@ -108,9 +171,39 @@ const EditTask: React.FC = () => {
 
       const headers = {
         Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
       };
 
-      const response = await updateTaskAPI(id!, { title, description, status, progress }, headers);
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('status', status);
+      formData.append('progress', progress.toString());
+
+      // Enhanced image handling logic
+      if (taskImage instanceof File) {
+        // New image uploaded
+        formData.append('taskImage', taskImage);
+      } else if (taskImage === '') {
+        // Image explicitly removed
+        formData.append('taskImage', '');
+      } else if (originalImage) {
+        // Retain existing image
+        const imageFilename = originalImage.split('/').pop();
+        formData.append('taskImage', imageFilename || '');
+      }
+
+      // Debug log for form data
+      console.log('Form Data for Update:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
+      const response = await updateTaskAPI(id!, formData, headers);
+      
+      // Debug log for response
+      console.log('Update Response:', response);
 
       if (response && response.status === 200) {
         alert('Task updated successfully!');
@@ -121,9 +214,11 @@ const EditTask: React.FC = () => {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message || err.message);
+        console.error('Update Error Response:', err.response?.data);
       } else {
         setError('An unexpected error occurred.');
       }
+      console.error('Error updating task:', err);
     } finally {
       setIsLoading(false);
     }
@@ -213,6 +308,35 @@ const EditTask: React.FC = () => {
             />
           </div>
 
+          {/* Image Upload Field with improvements */}
+          <div className="mb-3">
+            <label htmlFor="imageUpload" className="form-label">Task Image</label>
+            <input
+              type="file"
+              id="imageUpload"
+              name="taskImage"
+              onChange={handleImageChange}
+              className="form-control"
+              accept="image/jpeg,image/png,image/gif"
+            />
+            {previewImage && (
+              <div className="mt-2 text-center position-relative">
+                <img 
+                  src={previewImage} 
+                  alt="Task Preview" 
+                  className="img-fluid rounded" 
+                  style={{ maxHeight: '200px', objectFit: 'cover' }} 
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0 m-2"
+                  onClick={handleRemoveImage}
+                >
+                  Remove Image
+                </button>
+              </div>
+            )}
+          </div>
           <button 
             type="submit" 
             className="btn btn-primary w-100"
