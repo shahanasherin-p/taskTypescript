@@ -1,8 +1,7 @@
 import React, { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registerAPI, loginAPI } from '../services/allApi';
+import { registerAPI, loginAPI, } from '../services/allApi';
 import { AxiosResponse, AxiosError } from 'axios';
-
 
 interface AuthProps {
   insideRegister: boolean;
@@ -14,6 +13,11 @@ interface InputData {
   password: string;
 }
 
+// interface GoogleLoginProps {
+//   onSuccess?: () => void;
+// }
+
+
 const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
   const [inputData, setInputData] = useState<InputData>({
     username: "",
@@ -23,17 +27,41 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
 
   const navigate = useNavigate();
 
+
+  const handleGoogleLogin = (e: React.MouseEvent<HTMLButtonElement>): void => {
+    e.preventDefault();
+  
+    // Check if a token already exists
+    const existingToken = sessionStorage.getItem("token");
+  
+    if (existingToken) {
+      console.log("User already authenticated, no need to redirect.");
+      return; // Prevent unnecessary redirection
+    }
+  
+    console.log("Redirecting to Google auth...");
+    window.location.href = "http://localhost:3000/auth/google";
+  };
+  
+
+  
+  // const handleGoogleLogin = (e: React.MouseEvent<HTMLButtonElement>): void => {
+  //   // Prevent default if this is attached to a form or link
+  //   if (e) e.preventDefault();
+    
+  //   console.log("Redirecting to Google auth...");
+  //   window.location.href = "http://localhost:3000/auth/google";
+  // };
   // Handle registration
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     if (inputData.email && inputData.password && inputData.username) {
       try {
-        // Call the registerAPI and pass the inputData
         const response = await registerAPI(inputData);
         if (response.status === 200) {
           alert(`Registration successful for ${inputData.username}`);
           setInputData({ username: "", email: "", password: "" });
-          navigate('/login'); // Redirect to login page after successful registration
+          navigate('/login');
         } else {
           alert('Registration failed. Please try again.');
         }
@@ -50,30 +78,25 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
     e.preventDefault();
     if (inputData.email && inputData.password) {
       try {
-        // Call the loginAPI and pass the inputData
         const response = await loginAPI(inputData);
   
-        // Check if the response is of type AxiosResponse
         if ((response as AxiosResponse).status === 200) {
-          const axiosResponse = response as AxiosResponse; // Type assertion
+          const axiosResponse = response as AxiosResponse;
   
-          // Store login details and token in sessionStorage
           sessionStorage.setItem('user', JSON.stringify({
             email: inputData.email,
-            username: axiosResponse.data.username || inputData.username, // Assuming the username is returned in the response
+            username: axiosResponse.data.username || inputData.username,
           }));
   
-          // Store the token in sessionStorage
-          sessionStorage.setItem('token', axiosResponse.data.token); // Assuming the token is in the response
+          sessionStorage.setItem('token', axiosResponse.data.token);
   
           alert(`Login successful for ${inputData.email}`);
           setInputData({ username: "", email: "", password: "" });
-          navigate('/tasks'); // Redirect to tasks page after successful login
+          navigate('/tasks');
         } else {
           alert('Login failed. Please check your credentials.');
         }
       } catch (error) {
-        // Check if the error is an AxiosError
         if (error instanceof AxiosError) {
           alert(`An error occurred during login: ${error.message}`);
         } else {
@@ -84,7 +107,11 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
       alert("Please fill the form completely!");
     }
   };
+
+
   
+
+
 
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100 bg-gradient-primary">
@@ -160,6 +187,12 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
                       >
                         Login
                       </button>
+                      <button 
+                        onClick={handleGoogleLogin} 
+                        className="btn btn-outline-primary mt-4 mb-3 mb-md-0"
+                      >
+                        Sign in with Google
+                      </button>
                       <p className="text-sm mt-3 text-center text-md-start">
                         Don't have an account? <Link to="/register" className="text-primary">Register</Link>
                       </p>
@@ -179,3 +212,5 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
 };
 
 export default Auth;
+
+

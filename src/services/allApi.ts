@@ -31,6 +31,7 @@ export const loginAPI = async (reqBody: RequestBody): Promise<AxiosResponse<any>
   return await commonAPI("POST", `${SERVER_URL}/login`, reqBody);
 };
 
+
 // Add Task API
 export const addTaskAPI = async (
   reqBody: RequestBody,

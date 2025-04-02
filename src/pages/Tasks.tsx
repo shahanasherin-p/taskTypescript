@@ -36,6 +36,28 @@ const Tasks: React.FC = () => {
   const [allTask, setAllTask] = useState<any[]>([]);
 
   useEffect(() => {
+    const existingToken = sessionStorage.getItem("token");
+
+    if (!existingToken) {
+      // Check if there's a token in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
+
+      if (token) {
+        sessionStorage.setItem("token", token);
+        console.log("Token saved in session storage");
+
+        // Remove token from URL for clean UI
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        console.log("No token found, redirecting to login...");
+        window.location.href = "/auth"; // Redirect to login page if no token
+      }
+    }
+  }, []);
+
+
+  useEffect(() => {
     const storedUser = JSON.parse(sessionStorage.getItem('user') || '{}');
     
     if (storedUser) {
@@ -45,8 +67,9 @@ const Tasks: React.FC = () => {
     }
 
     fetchTasks();
-  }, [allTask]);
+  }, []);
 
+  
   const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -415,7 +438,7 @@ const Tasks: React.FC = () => {
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Upload
-                </Button>
+                </Button> 
                 {profileImage !== DEFAULT_PROFILE_PICTURE && (
                   <Button variant="outline-danger" size="sm" onClick={handleRemoveProfileImage}>
                     Remove
