@@ -1,7 +1,9 @@
 import React, { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registerAPI, loginAPI, } from '../services/allApi';
+import { registerAPI, loginAPI } from '../services/allApi';
 import { AxiosResponse, AxiosError } from 'axios';
+import { Container, Card, Row, Col, Form, Button, Alert } from 'react-bootstrap';
+import { motion } from 'framer-motion';
 
 interface AuthProps {
   insideRegister: boolean;
@@ -13,20 +15,47 @@ interface InputData {
   password: string;
 }
 
-// interface GoogleLoginProps {
-//   onSuccess?: () => void;
-// }
-
-
 const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
   const [inputData, setInputData] = useState<InputData>({
     username: "",
     email: "",
     password: "",
   });
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { duration: 0.5 }
+    }
+  };
+
+  const formVariants = {
+    hidden: { x: 20, opacity: 0 },
+    visible: { 
+      x: 0, 
+      opacity: 1,
+      transition: { 
+        type: "spring",
+        stiffness: 100,
+        delay: 0.3
+      }
+    }
+  };
+
+  const buttonVariants = {
+    hover: { 
+      scale: 1.05,
+      boxShadow: "0px 5px 10px rgba(0, 0, 0, 0.2)",
+      transition: { type: "spring", stiffness: 400 }
+    },
+    tap: { scale: 0.95 }
+  };
 
   const handleGoogleLogin = (e: React.MouseEvent<HTMLButtonElement>): void => {
     e.preventDefault();
@@ -35,41 +64,36 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
     const existingToken = sessionStorage.getItem("token");
   
     if (existingToken) {
-      console.log("User already authenticated, no need to redirect.");
+      setError("User already authenticated, no need to redirect.");
       return; // Prevent unnecessary redirection
     }
   
     console.log("Redirecting to Google auth...");
     window.location.href = "http://localhost:3000/auth/google";
   };
-  
 
-  
-  // const handleGoogleLogin = (e: React.MouseEvent<HTMLButtonElement>): void => {
-  //   // Prevent default if this is attached to a form or link
-  //   if (e) e.preventDefault();
-    
-  //   console.log("Redirecting to Google auth...");
-  //   window.location.href = "http://localhost:3000/auth/google";
-  // };
   // Handle registration
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     if (inputData.email && inputData.password && inputData.username) {
       try {
+        setLoading(true);
+        setError(null);
         const response = await registerAPI(inputData);
         if (response.status === 200) {
-          alert(`Registration successful for ${inputData.username}`);
+          setSuccess(`Registration successful for ${inputData.username}`);
           setInputData({ username: "", email: "", password: "" });
-          navigate('/login');
+          setTimeout(() => navigate('/login'), 1500);
         } else {
-          alert('Registration failed. Please try again.');
+          setError('Registration failed. Please try again.');
         }
       } catch (error) {
-        alert('An error occurred during registration. Please try again.');
+        setError('An error occurred during registration. Please try again.');
+      } finally {
+        setLoading(false);
       }
     } else {
-      alert("Please fill the form completely!");
+      setError("Please fill the form completely!");
     }
   };
 
@@ -78,6 +102,8 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
     e.preventDefault();
     if (inputData.email && inputData.password) {
       try {
+        setLoading(true);
+        setError(null);
         const response = await loginAPI(inputData);
   
         if ((response as AxiosResponse).status === 200) {
@@ -90,127 +116,201 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
   
           sessionStorage.setItem('token', axiosResponse.data.token);
   
-          alert(`Login successful for ${inputData.email}`);
+          setSuccess(`Login successful for ${inputData.email}`);
           setInputData({ username: "", email: "", password: "" });
-          navigate('/tasks');
+          setTimeout(() => navigate('/tasks'), 1500);
         } else {
-          alert('Login failed. Please check your credentials.');
+          setError('Login failed. Please check your credentials.');
         }
       } catch (error) {
         if (error instanceof AxiosError) {
-          alert(`An error occurred during login: ${error.message}`);
+          setError(`An error occurred during login: ${error.message}`);
         } else {
-          alert('An unexpected error occurred. Please try again.');
+          setError('An unexpected error occurred. Please try again.');
         }
+      } finally {
+        setLoading(false);
       }
     } else {
-      alert("Please fill the form completely!");
+      setError("Please fill the form completely!");
     }
   };
 
-
-  
-
-
-
   return (
-    <div className="container d-flex justify-content-center align-items-center min-vh-100 bg-gradient-primary">
-      <div className="card shadow-lg p-4 w-100 w-md-75 w-lg-50">
-        <div className="row g-0">
-          <div className="col-md-6">
-            <img
-              className="img-fluid rounded-start"
-              src="https://img.freepik.com/premium-vector/account-login-password-laptop-screen-data-protection-cyber-security-online-registration_501813-2098.jpg?w=900"
-              alt="Authentication"
-            />
-          </div>
-          <div className="col-md-6 d-flex flex-column justify-content-center">
-            <div className="card-body">
-              <h1 className="card-title text-center fs-3 fw-bold text-dark mb-4">
-                <i className="fas fa-user-circle"></i> Task Management
-              </h1>
-              <h5 className="text-center text-secondary mb-4">Sign {insideRegister ? "Up" : "In"} to Your Account</h5>
-              <form>
-                {insideRegister && (
-                  <div className="mb-3">
-                    <label className="form-label" htmlFor="username">Username</label>
-                    <input
-                      className="form-control"
-                      value={inputData.username}
-                      onChange={(e) => setInputData({ ...inputData, username: e.target.value })}
-                      id="username"
-                      type="text"
-                      placeholder="Username"
-                    />
-                  </div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="bg-light min-vh-100 d-flex align-items-center"
+    >
+      <Container>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <Row className="g-0">
+            <Col md={6} className="p-0">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Card.Img
+                  src="https://img.freepik.com/premium-vector/account-login-password-laptop-screen-data-protection-cyber-security-online-registration_501813-2098.jpg?w=900"
+                  className="rounded-0 h-100 object-fit-cover mt-5"
+                  alt="Authentication"
+                />
+              </motion.div>
+            </Col>
+            <Col md={6}>
+              <Card.Body className="p-4 p-md-5">
+                <motion.div
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="text-center mb-4"
+                >
+                  <h2 className="fw-bold text-secondary">
+                    <i className="fas fa-tasks me-2"></i>
+                    Task Management
+                  </h2>
+                  <p className="text-muted">
+                    Sign {insideRegister ? "Up" : "In"} to Your Account
+                  </p>
+                </motion.div>
+
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Alert variant="danger" className="mb-3">{error}</Alert>
+                  </motion.div>
                 )}
-                <div className="mb-3">
-                  <label className="form-label" htmlFor="email">Email Address</label>
-                  <input
-                    className="form-control"
-                    value={inputData.email}
-                    onChange={(e) => setInputData({ ...inputData, email: e.target.value })}
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="form-label" htmlFor="password">Password</label>
-                  <input
-                    className="form-control"
-                    value={inputData.password}
-                    onChange={(e) => setInputData({ ...inputData, password: e.target.value })}
-                    id="password"
-                    type="password"
-                    placeholder="Password"
-                  />
-                </div>
-                <div className="d-flex justify-content-between align-items-center flex-column flex-md-row">
+                
+                {success && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Alert variant="success" className="mb-3">{success}</Alert>
+                  </motion.div>
+                )}
+
+                <motion.div variants={formVariants}>
+                  <Form>
+                    {insideRegister && (
+                      <Form.Group className="mb-3">
+                        <Form.Label>Username</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Enter your username"
+                          value={inputData.username}
+                          onChange={(e) => setInputData({ ...inputData, username: e.target.value })}
+                          required
+                        />
+                      </Form.Group>
+                    )}
+                    
+                    <Form.Group className="mb-3">
+                      <Form.Label>Email Address</Form.Label>
+                      <Form.Control
+                        type="email"
+                        placeholder="name@example.com"
+                        value={inputData.email}
+                        onChange={(e) => setInputData({ ...inputData, email: e.target.value })}
+                        required
+                      />
+                    </Form.Group>
+                    
+                    <Form.Group className="mb-4">
+                      <Form.Label>Password</Form.Label>
+                      <Form.Control
+                        type="password"
+                        placeholder="Enter your password"
+                        value={inputData.password}
+                        onChange={(e) => setInputData({ ...inputData, password: e.target.value })}
+                        required
+                      />
+                    </Form.Group>
+
+                    <div className="d-grid gap-2">
+                      {insideRegister ? (
+                        <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+                          <Button 
+                            variant="primary" 
+                            className="w-100 py-2"
+                            onClick={handleRegister}
+                            disabled={loading}
+                          >
+                            {loading ? 'Processing...' : 'Create Account'}
+                          </Button>
+                        </motion.div>
+                      ) : (
+                        <>
+                          <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+                            <Button 
+                              variant="primary" 
+                              className="w-100 py-2"
+                              onClick={handleLogin}
+                              disabled={loading}
+                            >
+                              {loading ? 'Processing...' : 'Sign In'}
+                            </Button>
+                          </motion.div>
+                          
+                          <div className="text-center my-3">OR</div>
+                          
+                          <motion.div variants={buttonVariants} whileHover="hover" whileTap="tap">
+                            <Button 
+                              variant="outline-secondary" 
+                              className="w-100 py-2 d-flex align-items-center justify-content-center"
+                              onClick={handleGoogleLogin}
+                              disabled={loading}
+                            >
+                              <img 
+                                src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" 
+                                alt="Google" 
+                                width="20" 
+                                height="20" 
+                                className="me-2" 
+                              />
+                              Sign in with Google
+                            </Button>
+                          </motion.div>
+                        </>
+                      )}
+                    </div>
+                  </Form>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6, duration: 0.5 }}
+                  className="mt-4 text-center"
+                >
                   {insideRegister ? (
-                    <>
-                      <button
-                        onClick={handleRegister}
-                        className="btn btn-primary mb-3 mb-md-0"
-                      >
-                        Register
-                      </button>
-                      <p className="text-sm mt-3 text-center text-md-start">
-                        Already a User? <Link to="/login" className="text-primary">Login</Link>
-                      </p>
-                    </>
+                    <p className="mb-0">
+                      Already have an account? <Link to="/login" className="text-primary fw-bold">Sign In</Link>
+                    </p>
                   ) : (
-                    <>
-                      <button
-                        onClick={handleLogin}
-                        className="btn btn-primary mb-3 mb-md-0"
-                      >
-                        Login
-                      </button>
-                      <button 
-                        onClick={handleGoogleLogin} 
-                        className="btn btn-outline-primary mt-4 mb-3 mb-md-0"
-                      >
-                        Sign in with Google
-                      </button>
-                      <p className="text-sm mt-3 text-center text-md-start">
-                        Don't have an account? <Link to="/register" className="text-primary">Register</Link>
-                      </p>
-                    </>
+                    <p className="mb-0">
+                      Don't have an account? <Link to="/register" className="text-primary fw-bold">Sign Up</Link>
+                    </p>
                   )}
-                  <Link to="/" className="text-sm text-primary mt-3 mt-md-0 float-md-end">
-                    Go Back to Home
-                  </Link>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                  <div className="mt-3">
+                    <Link to="/" className="text-muted">
+                      <i className="fas fa-arrow-left me-1"></i> Back to Home
+                    </Link>
+                  </div>
+                </motion.div>
+              </Card.Body>
+            </Col>
+          </Row>
+        </Card>
+      </Container>
+    </motion.div>
   );
 };
 
 export default Auth;
-
-
