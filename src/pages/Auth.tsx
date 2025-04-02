@@ -153,7 +153,7 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
                 transition={{ duration: 0.5 }}
               >
                 <Card.Img
-                  src="https://img.freepik.com/premium-vector/account-login-password-laptop-screen-data-protection-cyber-security-online-registration_501813-2098.jpg?w=900"
+                  src="https://img.freepik.com/free-vector/login-concept-illustration_114360-739.jpg"
                   className="rounded-0 h-100 object-fit-cover mt-5"
                   alt="Authentication"
                 />
