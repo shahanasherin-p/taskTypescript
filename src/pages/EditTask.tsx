@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import { Container, Row, Col, Card, Form, Button, Spinner, Alert, ProgressBar, Image } from 'react-bootstrap';
 import { getSingleTaskAPI, updateTaskAPI } from '../services/allApi';
 import SERVER_URL from '../services/serverUrl';
 
@@ -12,6 +14,28 @@ interface Task {
   progress: number;
   taskImage?: string | File; 
 }
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      duration: 0.5,
+      when: "beforeChildren",
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { 
+    y: 0, 
+    opacity: 1,
+    transition: { type: "spring", stiffness: 100 }
+  }
+};
 
 const EditTask: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +50,7 @@ const EditTask: React.FC = () => {
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
@@ -57,9 +82,6 @@ const EditTask: React.FC = () => {
         } else if (response && response.data) {
           const fetchedTask = response.data;
           
-          // Debug log for image path
-          console.log('Fetched Task Image:', fetchedTask.taskImage);
-
           // Determine full image URL
           const fullImageUrl = fetchedTask.taskImage 
             ? (fetchedTask.taskImage.startsWith('http') 
@@ -90,7 +112,6 @@ const EditTask: React.FC = () => {
         } else {
           setError('An unexpected error occurred');
         }
-        console.error('Error fetching task details:', err);
       } finally {
         setIsLoading(false);
       }
@@ -140,7 +161,6 @@ const EditTask: React.FC = () => {
   };
 
   const handleRemoveImage = () => {
-    // Clear image-related states
     setTaskDetails(prevDetails => ({
       ...prevDetails,
       taskImage: '', 
@@ -151,21 +171,21 @@ const EditTask: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError(null);
 
     const { title, description, status, progress, taskImage } = taskDetails;
     if (!title || !description || !status || progress === undefined) {
-      setError('Please fill in all fields before submitting.');
-      setIsLoading(false);
+      setError('Please fill in all required fields.');
+      setIsSubmitting(false);
       return;
     }
 
     try {
       const token = sessionStorage.getItem('token');
       if (!token) {
-        setError('You need to be logged in to update the task.');
-        setIsLoading(false);
+        setError('You need to be logged in to update this task.');
+        setIsSubmitting(false);
         return;
       }
 
@@ -194,19 +214,9 @@ const EditTask: React.FC = () => {
         formData.append('taskImage', imageFilename || '');
       }
 
-      // Debug log for form data
-      console.log('Form Data for Update:');
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}: ${value}`);
-      }
-
       const response = await updateTaskAPI(id!, formData, headers);
       
-      // Debug log for response
-      console.log('Update Response:', response);
-
       if (response && response.status === 200) {
-        alert('Task updated successfully!');
         navigate('/tasks');
       } else {
         setError('Failed to update the task. Please try again.');
@@ -214,139 +224,238 @@ const EditTask: React.FC = () => {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message || err.message);
-        console.error('Update Error Response:', err.response?.data);
       } else {
         setError('An unexpected error occurred.');
       }
-      console.error('Error updating task:', err);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Show loading state
   if (isLoading) {
     return (
-      <div className="d-flex justify-content-center align-items-center min-vh-100">
-        <div className="spinner-border" role="status">
+      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+        <Spinner animation="border" variant="primary" role="status">
           <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
+        </Spinner>
+      </Container>
     );
   }
 
-  // Show error state
-  if (error) {
-    return (
-      <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light">
-        <div className="alert alert-danger" role="alert">
-          {error}
-          <button 
-            className="btn btn-secondary ms-2" 
-            onClick={() => navigate('/tasks')}
-          >
-            Back to Tasks
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Get status variant for the card border
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'completed': return 'success';
+      case 'inProgress': return 'info';
+      case 'pending': return 'warning';
+      default: return 'primary';
+    }
+  };
 
   return (
-    <div className="d-flex flex-column align-items-center justify-content-center min-vh-100 bg-light p-4">
-      <div className="card shadow-lg rounded w-100 w-md-75 w-lg-50 p-4">
-        <h1 className="text-3xl font-bold mb-4 text-center">Edit Task</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="mb-3">
-            <input
-              type="text"
-              name="title"
-              value={taskDetails.title}
-              onChange={handleChange}
-              placeholder="Task Title"
-              className="form-control"
-              required
-            />
-          </div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="py-5 bg-light"
+      style={{minHeight: '100vh'}}
+    >
+      <Container>
+        <Row className="justify-content-center">
+          <Col md={10} lg={8} xl={7}>
+            <motion.div variants={itemVariants}>
+              <Card 
+                className={`shadow-lg border-${getStatusVariant(taskDetails.status)}`} 
+                style={{borderWidth: '2px'}}
+              >
+                <Card.Header className="bg-white border-bottom-0 pt-4 pb-0">
+                  <motion.h2 
+                    className="text-center mb-3"
+                    initial={{ y: -20 }}
+                    animate={{ y: 0 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    Edit Task
+                  </motion.h2>
+                  
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Alert variant="danger" dismissible onClose={() => setError(null)}>
+                        {error}
+                      </Alert>
+                    </motion.div>
+                  )}
+                </Card.Header>
+                
+                <Card.Body>
+                  <Form onSubmit={handleSubmit}>
+                    <motion.div variants={itemVariants}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Task Title</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="title"
+                          value={taskDetails.title}
+                          onChange={handleChange}
+                          placeholder="Enter task title"
+                          required
+                        />
+                      </Form.Group>
+                    </motion.div>
 
-          <div className="mb-3">
-            <textarea
-              name="description"
-              value={taskDetails.description}
-              onChange={handleChange}
-              placeholder="Task Description"
-              className="form-control"
-              required
-            />
-          </div>
+                    <motion.div variants={itemVariants}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Description</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          name="description"
+                          value={taskDetails.description}
+                          onChange={handleChange}
+                          placeholder="Describe your task"
+                          rows={3}
+                          required
+                        />
+                      </Form.Group>
+                    </motion.div>
 
-          <div className="mb-3">
-            <select
-              name="status"
-              value={taskDetails.status}
-              onChange={handleChange}
-              className="form-select"
-              required
-            >
-              <option value="pending">Pending</option>
-              <option value="inProgress">In Progress</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
+                    <Row>
+                      <Col md={6}>
+                        <motion.div variants={itemVariants}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Status</Form.Label>
+                            <Form.Select
+                              name="status"
+                              value={taskDetails.status}
+                              onChange={handleChange}
+                              required
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="inProgress">In Progress</option>
+                              <option value="completed">Completed</option>
+                            </Form.Select>
+                          </Form.Group>
+                        </motion.div>
+                      </Col>
+                      
+                      <Col md={6}>
+                        <motion.div variants={itemVariants}>
+                          <Form.Group className="mb-3">
+                            <Form.Label>Progress: {taskDetails.progress}%</Form.Label>
+                            <Form.Range
+                              name="progress"
+                              value={taskDetails.progress}
+                              onChange={handleChange}
+                              min="0"
+                              max="100"
+                            />
+                            <ProgressBar 
+                              now={taskDetails.progress} 
+                              variant={getStatusVariant(taskDetails.status)}
+                              className="mt-2"
+                            />
+                          </Form.Group>
+                        </motion.div>
+                      </Col>
+                    </Row>
 
-          <div className="mb-3">
-            <input
-              type="number"
-              name="progress"
-              value={taskDetails.progress}
-              onChange={handleChange}
-              placeholder="Progress (%)"
-              className="form-control"
-              min="0"
-              max="100"
-              required
-            />
-          </div>
+                    <motion.div variants={itemVariants}>
+                      <Form.Group className="mb-4">
+                        <Form.Label>Task Image</Form.Label>
+                        <Form.Control
+                          type="file"
+                          id="imageUpload"
+                          name="taskImage"
+                          onChange={handleImageChange}
+                          accept="image/jpeg,image/png,image/gif"
+                        />
+                        <Form.Text className="text-muted">
+                          Max file size: 5MB. Supported formats: JPEG, PNG, GIF
+                        </Form.Text>
+                      </Form.Group>
+                    </motion.div>
 
-          {/* Image Upload Field with improvements */}
-          <div className="mb-3">
-            <label htmlFor="imageUpload" className="form-label">Task Image</label>
-            <input
-              type="file"
-              id="imageUpload"
-              name="taskImage"
-              onChange={handleImageChange}
-              className="form-control"
-              accept="image/jpeg,image/png,image/gif"
-            />
-            {previewImage && (
-              <div className="mt-2 text-center position-relative">
-                <img 
-                  src={previewImage} 
-                  alt="Task Preview" 
-                  className="img-fluid rounded" 
-                  style={{ maxHeight: '200px', objectFit: 'cover' }} 
-                />
-                <button 
-                  type="button" 
-                  className="btn btn-danger btn-sm position-absolute top-0 end-0 m-2"
-                  onClick={handleRemoveImage}
-                >
-                  Remove Image
-                </button>
-              </div>
-            )}
-          </div>
-          <button 
-            type="submit" 
-            className="btn btn-primary w-100"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Updating...' : 'Update Task'}
-          </button>
-        </form>
-      </div>
-    </div>
+                    {previewImage && (
+                      <motion.div 
+                        variants={itemVariants}
+                        className="text-center mb-4 position-relative"
+                      >
+                        <Image 
+                          src={previewImage} 
+                          alt="Task Preview" 
+                          thumbnail
+                          className="img-preview"
+                          style={{ maxHeight: '200px', objectFit: 'contain' }} 
+                        />
+                        <motion.button 
+                          type="button" 
+                          className="btn btn-sm btn-danger position-absolute top-0 end-0 m-2"
+                          onClick={handleRemoveImage}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
+                          <i className="fas fa-times"></i>
+                        </motion.button>
+                      </motion.div>
+                    )}
+
+                    <Row className="mt-4">
+                      <Col xs={6}>
+                        <motion.div 
+                          variants={itemVariants}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <Button 
+                            variant="outline-secondary" 
+                            className="w-100"
+                            onClick={() => navigate('/tasks')}
+                            disabled={isSubmitting}
+                          >
+                            Cancel
+                          </Button>
+                        </motion.div>
+                      </Col>
+                      <Col xs={6}>
+                        <motion.div 
+                          variants={itemVariants}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <Button 
+                            type="submit" 
+                            variant={getStatusVariant(taskDetails.status)}
+                            className="w-100"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Spinner
+                                  as="span"
+                                  animation="border"
+                                  size="sm"
+                                  role="status"
+                                  aria-hidden="true"
+                                  className="me-2"
+                                />
+                                Saving...
+                              </>
+                            ) : 'Save Changes'}
+                          </Button>
+                        </motion.div>
+                      </Col>
+                    </Row>
+                  </Form>
+                </Card.Body>
+              </Card>
+            </motion.div>
+          </Col>
+        </Row>
+      </Container>
+    </motion.div>
   );
 };
 
