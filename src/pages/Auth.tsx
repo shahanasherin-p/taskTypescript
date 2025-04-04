@@ -15,6 +15,11 @@ interface InputData {
   password: string;
 }
 
+interface ValidationErrors {
+  email: string | null;
+  password: string | null;
+}
+
 const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
   const [inputData, setInputData] = useState<InputData>({
     username: "",
@@ -24,6 +29,10 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({
+    email: null,
+    password: null
+  });
 
   const navigate = useNavigate();
 
@@ -72,9 +81,82 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
     window.location.href = "http://localhost:3000/auth/google";
   };
 
+  // Validate email
+  const validateEmail = (email: string): string | null => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      return "Email is required";
+    }
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return null;
+  };
+
+  // Validate password
+  const validatePassword = (password: string): string | null => {
+    if (!password) {
+      return "Password is required";
+    }
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long";
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    if (!/[a-z]/.test(password)) {
+      return "Password must contain at least one lowercase letter";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Password must contain at least one number";
+    }
+    if (!/[!@#$%^&*]/.test(password)) {
+      return "Password must contain at least one special character (!@#$%^&*)";
+    }
+    return null;
+  };
+
+  // Handle input changes with validation
+  const handleInputChange = (field: keyof InputData, value: string) => {
+    setInputData({ ...inputData, [field]: value });
+    
+    // Run validation on change for relevant fields
+    if (field === 'email') {
+      setValidationErrors({
+        ...validationErrors,
+        email: validateEmail(value)
+      });
+    } else if (field === 'password') {
+      setValidationErrors({
+        ...validationErrors,
+        password: validatePassword(value)
+      });
+    }
+  };
+
   // Handle registration
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Full validation before submission
+    const emailError = validateEmail(inputData.email);
+    const passwordError = validatePassword(inputData.password);
+    
+    setValidationErrors({
+      email: emailError,
+      password: passwordError
+    });
+    
+    // If any validation errors exist, prevent form submission
+    if (emailError || passwordError || !inputData.username) {
+      if (!inputData.username) {
+        setError("Please fill the form completely!");
+      } else {
+        setError("Please fix the validation errors before submitting.");
+      }
+      return;
+    }
+    
     if (inputData.email && inputData.password && inputData.username) {
       try {
         setLoading(true);
@@ -217,9 +299,15 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
                         type="email"
                         placeholder="name@example.com"
                         value={inputData.email}
-                        onChange={(e) => setInputData({ ...inputData, email: e.target.value })}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        isInvalid={!!validationErrors.email}
                         required
                       />
+                      {validationErrors.email && (
+                        <Form.Control.Feedback type="invalid">
+                          {validationErrors.email}
+                        </Form.Control.Feedback>
+                      )}
                     </Form.Group>
                     
                     <Form.Group className="mb-4">
@@ -228,9 +316,21 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
                         type="password"
                         placeholder="Enter your password"
                         value={inputData.password}
-                        onChange={(e) => setInputData({ ...inputData, password: e.target.value })}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        isInvalid={!!validationErrors.password}
                         required
                       />
+                      {validationErrors.password && (
+                        <Form.Control.Feedback type="invalid">
+                          {validationErrors.password}
+                        </Form.Control.Feedback>
+                      )}
+                      {insideRegister && (
+                        <Form.Text className="text-muted">
+                          Password must be at least 8 characters with uppercase, lowercase, 
+                          number, and special character.
+                        </Form.Text>
+                      )}
                     </Form.Group>
 
                     <div className="d-grid gap-2">
