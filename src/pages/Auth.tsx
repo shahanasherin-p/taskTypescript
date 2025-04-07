@@ -193,14 +193,19 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
   
           sessionStorage.setItem('user', JSON.stringify({
             email: inputData.email,
-            username: axiosResponse.data.username || inputData.username,
+            username: axiosResponse.data.user.username,
+            role:axiosResponse.data.user.role
           }));
-  
           sessionStorage.setItem('token', axiosResponse.data.token);
   
           setSuccess(`Login successful for ${inputData.email}`);
           setInputData({ username: "", email: "", password: "" });
-          setTimeout(() => navigate('/tasks'), 1500);
+          const userRole = axiosResponse.data.user.role;
+          if (userRole === "admin") {
+            setTimeout(() => navigate('/admin'), 1500);
+          } else {
+            setTimeout(() => navigate('/tasks'), 1500);
+          }
         } else {
           setError('Login failed. Please check your credentials.');
         }
@@ -223,10 +228,10 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="bg-light min-vh-100 d-flex align-items-center"
+      className="bg-dark min-vh-100 d-flex align-items-center"
     >
       <Container>
-        <Card className="border-0 shadow-lg overflow-hidden">
+        <Card className="border-0 shadow-lg overflow-hidden bg-dark">
           <Row className="g-0">
             <Col md={6} className="p-0">
               <motion.div
@@ -387,7 +392,7 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6, duration: 0.5 }}
-                  className="mt-4 text-center"
+                  className="mt-4 text-center text-light"
                 >
                   {insideRegister ? (
                     <p className="mb-0">
@@ -398,9 +403,9 @@ const Auth: React.FC<AuthProps> = ({ insideRegister }) => {
                       Don't have an account? <Link to="/register" className="text-primary fw-bold">Sign Up</Link>
                     </p>
                   )}
-                  <div className="mt-3">
-                    <Link to="/" className="text-muted">
-                      <i className="fas fa-arrow-left me-1"></i> Back to Home
+                  <div className="mt-3 ">
+                    <Link to="/" className="text-muted ">
+                      <i className="fas fa-arrow-left me-1 text-light"></i><span className="text-light">Back to Home</span>
                     </Link>
                   </div>
                 </motion.div>

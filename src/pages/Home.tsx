@@ -176,7 +176,7 @@ const Home: React.FC = () => {
                 transition={{ duration: 0.5 }}
                 whileHover={{ y: -8, transition: { duration: 0.3 } }}
               >
-                <Card className="h-100 border-0 shadow-sm hover-shadow" style={{ borderRadius: "16px", overflow: "hidden" }}>
+                <Card className="h-100 border-0 shadow-sm hover-shadow bg-dark text-light" style={{ borderRadius: "16px", overflow: "hidden" }}>
                   <div className="position-relative">
                     <div 
                       className="position-absolute top-0 start-0 w-100 h-100" 
@@ -217,7 +217,7 @@ const Home: React.FC = () => {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 whileHover={{ y: -8, transition: { duration: 0.3 } }}
               >
-                <Card className="h-100 border-0 shadow-sm hover-shadow" style={{ borderRadius: "16px", overflow: "hidden" }}>
+                <Card className="h-100 border-0 shadow-sm hover-shadow bg-dark text-light" style={{ borderRadius: "16px", overflow: "hidden" }}>
                   <div className="position-relative">
                     <div 
                       className="position-absolute top-0 start-0 w-100 h-100" 
@@ -258,7 +258,7 @@ const Home: React.FC = () => {
                 transition={{ duration: 0.5, delay: 0.4 }}
                 whileHover={{ y: -8, transition: { duration: 0.3 } }}
               >
-                <Card className="h-100 border-0 shadow-sm hover-shadow" style={{ borderRadius: "16px", overflow: "hidden" }}>
+                <Card className="h-100 border-0 shadow-sm hover-shadow bg-dark text-light" style={{ borderRadius: "16px", overflow: "hidden" }}>
                   <div className="position-relative">
                     <div 
                       className="position-absolute top-0 start-0 w-100 h-100" 

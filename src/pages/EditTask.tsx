@@ -257,7 +257,7 @@ const EditTask: React.FC = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="py-5 bg-light"
+      className="py-5 bg-dark"
       style={{minHeight: '100vh'}}
     >
       <Container>
@@ -265,10 +265,10 @@ const EditTask: React.FC = () => {
           <Col md={10} lg={8} xl={7}>
             <motion.div variants={itemVariants}>
               <Card 
-                className={`shadow-lg border-${getStatusVariant(taskDetails.status)}`} 
+                className={`shadow-lg bg-dark text-light border-${getStatusVariant(taskDetails.status)}`} 
                 style={{borderWidth: '2px'}}
               >
-                <Card.Header className="bg-white border-bottom-0 pt-4 pb-0">
+                <Card.Header className="bg-dark border-bottom-0 pt-4 pb-0 ">
                   <motion.h2 
                     className="text-center mb-3"
                     initial={{ y: -20 }}

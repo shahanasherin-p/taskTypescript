@@ -11,7 +11,12 @@ interface RequestHeaders {
   [key: string]: string;
 }
 
+
+
 interface Task {
+  createdAt: string;
+  username: string;
+  _id: string;
   taskImage: string;
   image: string;
   progress: number;
@@ -20,6 +25,15 @@ interface Task {
   description: string;
   status: string;
 }
+
+interface UserData {
+  _id: string;
+  name?: string;
+  username?: string;
+  email: string;
+  role?: string;
+}
+
 
 // Register API - Register a user
 export const registerAPI = async (reqBody: RequestBody): Promise<AxiosResponse<any> | AxiosError> => {
@@ -67,9 +81,53 @@ export const getSingleTaskAPI = async (id: string,reqHeader: RequestHeaders): Pr
   return await commonAPI("GET", `${SERVER_URL}/tasks/${id}`, "",reqHeader);
 };
 
+
+// update User API - Edit a user profile
 export const UpdateUserAPI = async (
   reqBody: RequestBody,
   reqHeader: RequestHeaders
 ) => {
   return await commonAPI("PUT", `${SERVER_URL}/edit-user`, reqBody, reqHeader);
+};
+
+// // Get All Tasks API - Fetch all tasks
+// export const allTasksAPI = async (reqHeader: RequestHeaders): Promise<AxiosResponse<Task[]> | AxiosError> => {
+//   return await commonAPI("GET", `${SERVER_URL}/all-tasks`, {}, reqHeader);
+// };
+
+// // Get Users API - Fetch all users
+//  export const getUsersAPI = async (reqHeader: RequestHeaders): Promise<AxiosResponse<any> | AxiosError> => {
+//   return await commonAPI("GET", `${SERVER_URL}/all-users`, {}, reqHeader);
+// };
+
+
+
+// Get All Tasks API - Fetch all tasks
+export const allTasksAPI = async (reqHeader: RequestHeaders): Promise<AxiosResponse<Task[]>> => {
+  try {
+    const response = await commonAPI("GET", `${SERVER_URL}/all-tasks`, {}, reqHeader);
+    return response as AxiosResponse<Task[]>; // Explicitly cast response
+  } catch (error) {
+    return Promise.reject(error); // Reject the promise instead of returning AxiosError
+  }
+};
+
+// Get Users API - Fetch all users
+export const getUsersAPI = async (reqHeader: RequestHeaders): Promise<AxiosResponse<UserData[]>> => {
+  try {
+    const response = await commonAPI("GET", `${SERVER_URL}/all-users`, {}, reqHeader);
+    return response as AxiosResponse<UserData[]>; // Explicitly cast response
+  } catch (error) {
+    return Promise.reject(error); // Reject the promise instead of returning AxiosError
+  }
+};
+
+
+
+// delete User API - Delete a user
+ export const deleteUserAPI = async (
+  id: string,
+  reqHeader: RequestHeaders
+): Promise<AxiosResponse<any> | AxiosError> => {
+  return await commonAPI("DELETE", `${SERVER_URL}/user/${id}/remove`, {}, reqHeader);
 };

@@ -386,7 +386,7 @@ const Tasks: React.FC = () => {
   };
 
   return (
-    <div className="container-fluid p-4 bg-light text-dark min-vh-100">
+    <div className="container-fluid p-4 bg-dark text-dark min-vh-100">
       <div className="row">
         {/* Main Content - Tasks */}
         <div className="col-md-9 pe-md-4">
@@ -406,7 +406,7 @@ const Tasks: React.FC = () => {
               <Button
                 onClick={() => openModal('add')}
                 variant="outline-light"
-                className="d-flex align-items-center border-dark text-dark"
+                className="d-flex align-items-center bg-light border-secondary text-dark"
               >
                 <i className="fas fa-plus me-2"></i>Add Task
               </Button>
@@ -451,7 +451,7 @@ const Tasks: React.FC = () => {
                                 }}
                               />
                             )}
-                            <Card.Body className="bg-light">
+                            <Card.Body className="bg-dark">
                               <div className="d-flex justify-content-between align-items-start mb-2">
                                 <Card.Title className="mb-0 text-primary">{task.title}</Card.Title>
                                 <div className="d-flex">
@@ -487,7 +487,7 @@ const Tasks: React.FC = () => {
                                     style={{ width: `${task.progress}%` }}
                                   ></div>
                                 </div>
-                                <small className="text-dark">{task.progress}%</small>
+                                <small className="text-light">{task.progress}%</small>
                               </div>
                               <Badge bg={getStatusBadgeVariant(task.status)} className="mt-2">
                                 {task.status}
@@ -638,12 +638,12 @@ const Tasks: React.FC = () => {
             >
               <Modal.Header 
                 closeButton 
-                className={`bg-light border-${getStatusBadgeVariant(taskDetails.status)}`}
+                className={`bg-dark border-${getStatusBadgeVariant(taskDetails.status)}`}
                 style={{ borderWidth: '2px', borderBottom: `2px solid var(--bs-${getStatusBadgeVariant(taskDetails.status)})` }}
               >
-                <Modal.Title>Add New Task</Modal.Title>
+                <Modal.Title className="text-light">Add New Task</Modal.Title>
               </Modal.Header>
-              <Modal.Body className="bg-light p-4">
+              <Modal.Body className="bg-dark p-4 text-light">
                 <Form onSubmit={handleAddTask}>
                   {error && (
                     <motion.div
